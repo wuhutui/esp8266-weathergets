@@ -1,3 +1,4 @@
+from bmp180 import BMP180
 import network
 import time
 import ujson
@@ -9,7 +10,6 @@ from ssd1306 import SSD1306_I2C
 oled = SSD1306_I2C(64,48,i2c)
 
 oled.fill(0)
-oled.show()
 
 net=network.WLAN(network.STA_IF)# create station interface
 net.active(True)
@@ -17,12 +17,12 @@ if not net.isconnected():
 	net.active(True)
 	net.connect("chiaki","123456789") 
 while not net.isconnected():
+	print("wrong connecting")
 	pass
 print("network config:", net.ifconfig())# get the interface's IP/netmask/gw/DNS addresses
 
-url='https://api.seniverse.com/v3/weather/daily.json?key=SGn6boc1Jsz1OSXFG&location=yaan&language=zh-Hans&unit=c&start=0&days=5'
-
-
+'''开机小动画'''
+ 
 oled.rect(6,6,52,36,2)#+右，+下，宽，长，像素
 oled.rect(10,10,44,28,2)#电视框
 
@@ -42,38 +42,62 @@ utime.sleep(5)#5s
 oled.fill(0)
 
 
-oled.pixel(0,0,3)
-oled.show()
-
-oled.pixel(63,0,3)
-oled.show()
-
-oled.pixel(0,47,3)
-oled.show()
-
-oled.pixel(63,47,3)
-oled.show()
-
-
+url='https://api.seniverse.com/v3/weather/daily.json?key=SGn6boc1Jsz1OSXFG&location=yaan&language=en&unit=c&start=0&days=5'
 result=urequests.get(url)
 if not net.isconnected():
 	machine.reset()
 j=ujson.loads(result.text)
-'''city=j['results'][0]['location']['path']
-oled.text("today"+city+"weather",0,0)'''
 
-temperature=j['results'][0]['daily'][0]['code_day']
-oled.text('TEMP is',2,5)
-oled.text(temperature,2,15)
+date=j['results'][0]['daily'][0]['date']
+list_d = str.split(date,"-")
+oled.text('Today',2,5)
+oled.text(list_d[0],2,15)
+oled.text(list_d[1],2,25)
+oled.text(list_d[2],2,35)
+oled.show()
+utime.sleep(5)
+oled.fill(0)
+
+city=j['results'][0]['location']['name']
+oled.text("CITY:",2,5) 
+oled.text(city,2,15) 
+
+Htemperature=j['results'][0]['daily'][0]['high']
+oled.text('HTEMP:',2,25)
+oled.text(Htemperature,2,35)
 
 oled.show()
+utime.sleep(5)
+oled.fill(0)
 
-
-'''weather=j['results'][0]['daily'][0]['text_day']
-oled.text('weather is'+weather,0,20)'''
-
-oled.fill(1)
+Ltemperature=j['results'][0]['daily'][0]['low']
+oled.text('LTEMP:',2,0)
+oled.text(Ltemperature,2,10)
+weather=j['results'][0]['daily'][0]['text_day']
+list_w = str.split(weather," ")
+oled.text('WEATHER:' ,2,18)
+oled.text(list_w[0],2,27)
+if ' 'in weather :
+	oled.text(list_w[1],2,35)
+oled.show()
+utime.sleep(5)
+oled.fill(0)
 
 result.close()
+'''压敏传感器获取气温、气压、海拔'''
+bmp180 = BMP180(i2c)
+bmp180.oversample_sett = 2
+bmp180.baseline = 101325
+while(1):
+	t = bmp180.temperature
+	p = bmp180.pressure
+	altitude = bmp180.altitude
+	oled.text('T:' + str(int(t)), 1, 1) #实时气温
+	oled.text('P:' + str(int(p)), 1, 10) #压强
+	oled.text('A:' + str(int(altitude)), 1, 20) #海拔
+	oled.show()
+	utime.sleep(1)
+	oled.fill(0)
+
 
 		
